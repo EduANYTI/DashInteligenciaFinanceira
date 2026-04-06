@@ -1,5 +1,8 @@
+# pyright: reportMissingModuleSource=false
+
 """
-Módulo de ingestão de indicadores macroeconômicos via API do Banco Central do Brasil.
+Módulo de ingestão de indicadores macroeconômicos
+via API do Banco Central do Brasil.
 
 API SGS (Sistema Gerenciador de Séries Temporais):
   https://api.bcb.gov.br/dados/serie/bcdata.sgs.{codigo}/dados
@@ -43,16 +46,19 @@ def fetch_bcb_series(
     """
     # Converte para formato DD/MM/YYYY exigido pela API do BCB
     start_fmt = _to_bcb_date(start)
-    end_fmt   = _to_bcb_date(end)
+    end_fmt = _to_bcb_date(end)
 
     url = BCB_API_URL.format(code=series_code)
     params = {
         "formato": "json",
         "dataInicial": start_fmt,
-        "dataFinal":   end_fmt,
+        "dataFinal": end_fmt,
     }
 
-    logger.info(f"Coletando série BCB {series_code} ({series_name}): {start_fmt} → {end_fmt}")
+    logger.info(
+        f"Coletando série BCB {series_code} ({series_name}): "
+        f"{start_fmt} → {end_fmt}"
+    )
 
     try:
         resp = requests.get(url, params=params, timeout=30)
@@ -142,6 +148,9 @@ def build_macro_table(
             result = df
         else:
             result = result.merge(df, on="date", how="outer")
+
+    if result is None:
+        return pd.DataFrame()
 
     result = result.sort_values("date").reset_index(drop=True)
 

@@ -6,8 +6,6 @@ Fontes:
   - NYSE/NASDAQ: sem sufixo (ex: SPY, AAPL)
 """
 
-from pathlib import Path
-
 import pandas as pd
 import yfinance as yf
 from tqdm import tqdm
@@ -42,7 +40,7 @@ def fetch_single_ticker(
             progress=False,
         )
 
-        if raw.empty:
+        if raw is None or raw.empty:
             logger.warning(f"Sem dados para {ticker} ({start} → {end})")
             return None
 
@@ -53,7 +51,10 @@ def fetch_single_ticker(
         df["ticker"] = ticker
         df["date"] = pd.to_datetime(df["date"]).dt.date
 
-        logger.info(f"{ticker}: {len(df):,} registros ({df['date'].min()} → {df['date'].max()})")
+        logger.info(
+            f"{ticker}: {len(df):,} registros "
+            f"({df['date'].min()} → {df['date'].max()})"
+        )
         return df[["date", "ticker", "open", "high", "low", "close", "volume"]]
 
     except Exception as e:

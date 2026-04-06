@@ -11,7 +11,6 @@ Documentação da API: https://dados.cvm.gov.br/swagger-ui.html
 
 import io
 import zipfile
-from pathlib import Path
 
 import pandas as pd
 import requests
@@ -69,7 +68,9 @@ def fetch_dfp_year(year: int, save_raw: bool = True) -> pd.DataFrame | None:
             ]
 
             if not target_files:
-                logger.warning(f"Nenhum arquivo consolidado encontrado no ZIP de {year}")
+                logger.warning(
+                    f"Nenhum arquivo consolidado encontrado no ZIP de {year}"
+                )
                 return None
 
             frames = []
@@ -89,7 +90,10 @@ def fetch_dfp_year(year: int, save_raw: bool = True) -> pd.DataFrame | None:
             if save_raw:
                 path = DATA_RAW_DIR / f"cvm_dfp_{year}_raw.csv"
                 result.to_csv(path, index=False)
-                logger.info(f"DFP {year} bruta salva: {path} ({len(result):,} linhas)")
+                logger.info(
+                    f"DFP {year} bruta salva: {path} "
+                    f"({len(result):,} linhas)"
+                )
 
             return result
 
@@ -109,7 +113,14 @@ def process_dfp(df_raw: pd.DataFrame, year: int) -> pd.DataFrame:
     Returns:
         DataFrame limpo com indicadores financeiros por empresa.
     """
-    required_cols = {"CD_CVM", "DENOM_CIA", "DT_REFER", "CD_CONTA", "DS_CONTA", "VL_CONTA"}
+    required_cols = {
+        "CD_CVM",
+        "DENOM_CIA",
+        "DT_REFER",
+        "CD_CONTA",
+        "DS_CONTA",
+        "VL_CONTA",
+    }
     available = set(df_raw.columns)
 
     if not required_cols.issubset(available):
@@ -118,7 +129,14 @@ def process_dfp(df_raw: pd.DataFrame, year: int) -> pd.DataFrame:
         return pd.DataFrame()
 
     df = df_raw[list(required_cols)].copy()
-    df.columns = ["cd_cvm", "empresa", "dt_refer", "cd_conta", "ds_conta", "valor"]
+    df.columns = [
+        "cd_cvm",
+        "empresa",
+        "dt_refer",
+        "cd_conta",
+        "ds_conta",
+        "valor",
+    ]
 
     # Filtra apenas contas de interesse
     df = df[df["cd_conta"].isin(CONTAS_INTERESSE.keys())].copy()
@@ -137,7 +155,10 @@ def process_dfp(df_raw: pd.DataFrame, year: int) -> pd.DataFrame:
     df = df.dropna(subset=["valor"])
     df = df[["cd_cvm", "empresa", "ano", "dt_refer", "indicador", "valor"]]
 
-    logger.info(f"DFP {year} processada: {df['empresa'].nunique()} empresas, {len(df):,} linhas")
+    logger.info(
+        f"DFP {year} processada: {df['empresa'].nunique()} empresas, "
+        f"{len(df):,} linhas"
+    )
     return df
 
 
