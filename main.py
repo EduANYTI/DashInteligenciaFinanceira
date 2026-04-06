@@ -48,7 +48,7 @@ def run_etl(data: dict) -> dict:
         normalize_macro,
         save_processed,
     )
-    from dashinteligenciafinanceira.src.etl.metrics import (
+    from src.etl.metrics import (
         compute_all_metrics,
         compute_correlation_matrix,
     )

@@ -17,7 +17,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from src.utils.config import DATA_PROCESSED_DIR, TRADING_DAYS_YEAR
-from dashinteligenciafinanceira.src.etl.metrics import (
+from src.etl.metrics import (
     annualized_return,
     annualized_volatility,
     sharpe_ratio,

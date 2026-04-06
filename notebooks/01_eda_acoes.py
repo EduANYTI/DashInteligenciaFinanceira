@@ -23,7 +23,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 
 from src.utils.config import DATA_PROCESSED_DIR
-from dashinteligenciafinanceira.src.etl.metrics import (
+from src.etl.metrics import (
     compute_correlation_matrix,
 )
 
