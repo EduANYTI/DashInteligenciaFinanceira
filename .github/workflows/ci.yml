@@ -31,9 +31,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Rodar testes com pytest
-        run: |
-          pytest tests/ -v --tb=short
+      - name: Rodar testes
+        run: pytest tests/ -v --tb=short
+        env:
+          PYTHONPATH: ${{ github.workspace }}
 
   # ──────────────────────────────────────────────
   # Job 2: Pipeline de dados (apenas no schedule)
