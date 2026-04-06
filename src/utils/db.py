@@ -1,10 +1,12 @@
+# pyright: reportMissingImports=false, reportMissingModuleSource=false
+
 """
 Gerenciamento de conexão com o banco de dados (SQLite ou PostgreSQL).
 Utiliza SQLAlchemy para abstração do banco.
 """
 
 from contextlib import contextmanager
-from typing import Generator
+from typing import Generator, Literal
 
 import pandas as pd
 from sqlalchemy import create_engine, text
@@ -58,7 +60,7 @@ def execute_query(sql: str, db_url: str | None = None) -> pd.DataFrame:
 def save_dataframe(
     df: pd.DataFrame,
     table_name: str,
-    if_exists: str = "replace",
+    if_exists: Literal["fail", "replace", "append"] = "replace",
     db_url: str | None = None,
 ) -> None:
     """

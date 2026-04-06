@@ -1,3 +1,5 @@
+# pyright: reportMissingImports=false, reportMissingModuleSource=false
+
 """
 Configurações globais do projeto.
 Carrega variáveis do .env e expõe como constantes tipadas.

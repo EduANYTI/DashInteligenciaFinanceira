@@ -19,7 +19,7 @@ from src.utils.config import TRADING_DAYS_YEAR
 from src.utils.logger import logger
 
 
-# ── Retornos ──────────────────────────────────────────────────────────────────
+# ── Retornos ─────────────────────────────────────────────────────────────────
 
 def cumulative_return(prices: pd.Series) -> float:
     """Retorno acumulado total do período."""
@@ -29,7 +29,10 @@ def cumulative_return(prices: pd.Series) -> float:
     return (prices.iloc[-1] / prices.iloc[0]) - 1
 
 
-def annualized_return(prices: pd.Series, trading_days: int = TRADING_DAYS_YEAR) -> float:
+def annualized_return(
+    prices: pd.Series,
+    trading_days: int = TRADING_DAYS_YEAR,
+) -> float:
     """
     Retorno anualizado (CAGR).
 
@@ -43,9 +46,12 @@ def annualized_return(prices: pd.Series, trading_days: int = TRADING_DAYS_YEAR) 
     return total ** (trading_days / n) - 1
 
 
-# ── Risco ─────────────────────────────────────────────────────────────────────
+# ── Risco ────────────────────────────────────────────────────────────────────
 
-def annualized_volatility(returns: pd.Series, trading_days: int = TRADING_DAYS_YEAR) -> float:
+def annualized_volatility(
+    returns: pd.Series,
+    trading_days: int = TRADING_DAYS_YEAR,
+) -> float:
     """Volatilidade anualizada (desvio padrão dos retornos × √252)."""
     returns = returns.dropna()
     if len(returns) < 2:
@@ -84,7 +90,7 @@ def value_at_risk(returns: pd.Series, confidence: float = 0.95) -> float:
     return float(np.percentile(returns, (1 - confidence) * 100))
 
 
-# ── Índices ajustados ao risco ────────────────────────────────────────────────
+# ── Índices ajustados ao risco ───────────────────────────────────────────────
 
 def sharpe_ratio(
     returns: pd.Series,
@@ -154,7 +160,7 @@ def beta(
     return cov / var if var != 0 else np.nan
 
 
-# ── Cálculo em lote ────────────────────────────────────────────────────────────
+# ── Cálculo em lote ──────────────────────────────────────────────────────────
 
 def compute_all_metrics(
     prices_pivot: pd.DataFrame,
@@ -181,7 +187,7 @@ def compute_all_metrics(
 
     records = []
     for ticker in tickers:
-        prices  = prices_pivot[ticker].dropna()
+        prices = prices_pivot[ticker].dropna()
         returns = returns_pivot[ticker].dropna()
 
         benchmark_ret = (
@@ -191,20 +197,38 @@ def compute_all_metrics(
         )
 
         record = {
-            "ticker":                ticker,
-            "data_inicio":           prices.index.min() if not prices.empty else None,
-            "data_fim":              prices.index.max() if not prices.empty else None,
-            "n_dias":                len(prices),
-            "preco_inicial":         round(float(prices.iloc[0]),  2) if not prices.empty else None,
-            "preco_final":           round(float(prices.iloc[-1]), 2) if not prices.empty else None,
-            "retorno_acumulado":     round(cumulative_return(prices), 4),
-            "retorno_anualizado":    round(annualized_return(prices), 4),
-            "volatilidade_anual":    round(annualized_volatility(returns), 4),
-            "max_drawdown":          round(max_drawdown(prices), 4),
-            "var_95":                round(value_at_risk(returns, 0.95), 4),
-            "sharpe_ratio":          round(sharpe_ratio(returns, rf_mean), 4),
-            "sortino_ratio":         round(sortino_ratio(returns, rf_mean), 4),
-            "beta":                  round(beta(returns, benchmark_ret), 4) if benchmark_ret is not None else None,
+            "ticker": ticker,
+            "data_inicio": (
+                prices.index.min() if not prices.empty else None
+            ),
+            "data_fim": (
+                prices.index.max() if not prices.empty else None
+            ),
+            "n_dias": len(prices),
+            "preco_inicial": (
+                round(float(prices.iloc[0]), 2)
+                if not prices.empty
+                else None
+            ),
+            "preco_final": (
+                round(float(prices.iloc[-1]), 2)
+                if not prices.empty
+                else None
+            ),
+            "retorno_acumulado": round(cumulative_return(prices), 4),
+            "retorno_anualizado": round(annualized_return(prices), 4),
+            "volatilidade_anual": round(
+                annualized_volatility(returns), 4
+            ),
+            "max_drawdown": round(max_drawdown(prices), 4),
+            "var_95": round(value_at_risk(returns, 0.95), 4),
+            "sharpe_ratio": round(sharpe_ratio(returns, rf_mean), 4),
+            "sortino_ratio": round(sortino_ratio(returns, rf_mean), 4),
+            "beta": (
+                round(beta(returns, benchmark_ret), 4)
+                if benchmark_ret is not None
+                else None
+            ),
         }
         records.append(record)
 
@@ -224,5 +248,8 @@ def compute_correlation_matrix(returns_pivot: pd.DataFrame) -> pd.DataFrame:
         DataFrame com a matriz de correlação de Pearson.
     """
     corr = returns_pivot.corr(method="pearson")
-    logger.info(f"Matriz de correlação calculada: {corr.shape[0]}×{corr.shape[1]}")
+    logger.info(
+        f"Matriz de correlação calculada: "
+        f"{corr.shape[0]}×{corr.shape[1]}"
+    )
     return corr

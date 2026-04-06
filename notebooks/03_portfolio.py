@@ -1,3 +1,5 @@
+# pyright: reportMissingImports=false, reportMissingModuleSource=false
+
 # %% [markdown]
 # # 💼 Análise de Portfólio e Risco
 # **Financial Intelligence Dashboard**

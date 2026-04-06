@@ -37,23 +37,46 @@ def load_all(
         corr_matrix: Matriz de correlação (pivô).
         db_url: URL de conexão. Se None, usa config padrão.
     """
-    engine = get_engine(db_url)
-
     if tickers_info_df is not None and not tickers_info_df.empty:
-        save_dataframe(tickers_info_df, "dim_ticker", if_exists="replace", db_url=db_url)
+        save_dataframe(
+            tickers_info_df,
+            "dim_ticker",
+            if_exists="replace",
+            db_url=db_url,
+        )
 
     if stocks_df is not None and not stocks_df.empty:
-        save_dataframe(stocks_df, "fact_prices", if_exists="replace", db_url=db_url)
+        save_dataframe(
+            stocks_df,
+            "fact_prices",
+            if_exists="replace",
+            db_url=db_url,
+        )
 
     if metrics_df is not None and not metrics_df.empty:
-        save_dataframe(metrics_df, "fact_metrics", if_exists="replace", db_url=db_url)
+        save_dataframe(
+            metrics_df,
+            "fact_metrics",
+            if_exists="replace",
+            db_url=db_url,
+        )
 
     if macro_df is not None and not macro_df.empty:
-        save_dataframe(macro_df, "fact_macro", if_exists="replace", db_url=db_url)
+        save_dataframe(
+            macro_df,
+            "fact_macro",
+            if_exists="replace",
+            db_url=db_url,
+        )
 
     if corr_matrix is not None and not corr_matrix.empty:
         corr_long = _pivot_to_long(corr_matrix)
-        save_dataframe(corr_long, "fact_correlation", if_exists="replace", db_url=db_url)
+        save_dataframe(
+            corr_long,
+            "fact_correlation",
+            if_exists="replace",
+            db_url=db_url,
+        )
 
     logger.info("Carregamento no banco de dados concluído.")
 
@@ -76,7 +99,11 @@ def _pivot_to_long(corr_matrix: pd.DataFrame) -> pd.DataFrame:
         ...
     """
     df = corr_matrix.reset_index()
-    df = df.melt(id_vars=df.columns[0], var_name="ticker_b", value_name="correlation")
+    df = df.melt(
+        id_vars=df.columns[0],
+        var_name="ticker_b",
+        value_name="correlation",
+    )
     df.columns = ["ticker_a", "ticker_b", "correlation"]
     return df
 

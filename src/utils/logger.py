@@ -1,3 +1,5 @@
+# pyright: reportMissingImports=false, reportMissingModuleSource=false
+
 """
 Configuração centralizada de logs com loguru.
 """

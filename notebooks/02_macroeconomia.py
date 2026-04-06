@@ -6,19 +6,17 @@
 # SELIC, IPCA, câmbio USD/BRL e suas relações com o mercado de ações.
 
 # %%
-import sys
-sys.path.insert(0, "..")
-
 import warnings
-warnings.filterwarnings("ignore")
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
 
 from src.utils.config import DATA_PROCESSED_DIR
+
+warnings.filterwarnings("ignore")
 
 print("Setup concluído ✓")
 
@@ -26,10 +24,17 @@ print("Setup concluído ✓")
 # ## 1. Carregamento dos dados
 
 # %%
-macro = pd.read_csv(DATA_PROCESSED_DIR / "macro_indicators.csv", parse_dates=["date"])
-stocks = pd.read_csv(DATA_PROCESSED_DIR / "stocks_clean.csv", parse_dates=["date"])
+macro = pd.read_csv(
+    DATA_PROCESSED_DIR / "macro_indicators.csv", parse_dates=["date"]
+)
+stocks = pd.read_csv(
+    DATA_PROCESSED_DIR / "stocks_clean.csv", parse_dates=["date"]
+)
 
-print(f"Macro: {len(macro):,} linhas | {macro['date'].min().date()} → {macro['date'].max().date()}")
+print(
+    f"Macro: {len(macro):,} linhas | "
+    f"{macro['date'].min().date()} → {macro['date'].max().date()}"
+)
 macro.tail()
 
 # %% [markdown]
@@ -45,7 +50,9 @@ fig = make_subplots(
 
 if "selic_diaria" in macro.columns:
     # Converte taxa diária para equivalente anual para visualização
-    macro["selic_anual_equiv"] = ((1 + macro["selic_diaria"] / 100) ** 252 - 1) * 100
+    macro["selic_anual_equiv"] = (
+        ((1 + macro["selic_diaria"] / 100) ** 252 - 1) * 100
+    )
     fig.add_trace(go.Scatter(
         x=macro["date"], y=macro["selic_anual_equiv"],
         name="SELIC (% a.a.)", line=dict(color="#E63946", width=1.5),
@@ -55,7 +62,9 @@ if "ipca_mensal" in macro.columns:
     fig.add_trace(go.Bar(
         x=macro["date"], y=macro["ipca_mensal"],
         name="IPCA mensal (%)",
-        marker_color=macro["ipca_mensal"].apply(lambda x: "#E63946" if x > 0 else "#2A9D8F"),
+        marker_color=np.where(
+            macro["ipca_mensal"] > 0, "#E63946", "#2A9D8F"
+        ),
     ), row=2, col=1)
 
     if "ipca_acumulado_12m" in macro.columns:
@@ -76,9 +85,17 @@ fig.show()
 # ## 3. Juro Real (SELIC − IPCA)
 
 # %%
-if "selic_anual_equiv" in macro.columns and "ipca_acumulado_12m" in macro.columns:
-    macro_valid = macro.dropna(subset=["selic_anual_equiv", "ipca_acumulado_12m"]).copy()
-    macro_valid["juro_real"] = macro_valid["selic_anual_equiv"] - macro_valid["ipca_acumulado_12m"]
+if (
+    "selic_anual_equiv" in macro.columns
+    and "ipca_acumulado_12m" in macro.columns
+):
+    macro_valid = macro.dropna(
+        subset=["selic_anual_equiv", "ipca_acumulado_12m"]
+    ).copy()
+    macro_valid["juro_real"] = (
+        macro_valid["selic_anual_equiv"]
+        - macro_valid["ipca_acumulado_12m"]
+    )
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -88,7 +105,10 @@ if "selic_anual_equiv" in macro.columns and "ipca_acumulado_12m" in macro.column
         fill="tozeroy",
         fillcolor="rgba(42, 157, 143, 0.15)",
         line=dict(color="#2A9D8F", width=2),
-        hovertemplate="Data: %{x|%d/%m/%Y}<br>Juro Real: %{y:.2f}%<extra></extra>",
+        hovertemplate=(
+            "Data: %{x|%d/%m/%Y}<br>"
+            "Juro Real: %{y:.2f}%<extra></extra>"
+        ),
     ))
     fig.add_hline(y=0, line_dash="dash", line_color="gray")
 
@@ -105,7 +125,7 @@ if "selic_anual_equiv" in macro.columns and "ipca_acumulado_12m" in macro.column
 
 # %%
 if "usd_brl" in macro.columns:
-    usd = macro.dropna(subset=["usd_brl"])
+    usd = macro.dropna(subset=["usd_brl"]).copy()
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -113,7 +133,10 @@ if "usd_brl" in macro.columns:
         y=usd["usd_brl"],
         name="USD/BRL",
         line=dict(color="#E9C46A", width=1.5),
-        hovertemplate="Data: %{x|%d/%m/%Y}<br>USD/BRL: R$ %{y:.4f}<extra></extra>",
+        hovertemplate=(
+            "Data: %{x|%d/%m/%Y}<br>"
+            "USD/BRL: R$ %{y:.4f}<extra></extra>"
+        ),
     ))
 
     # Média móvel 30 dias
@@ -132,6 +155,24 @@ if "usd_brl" in macro.columns:
     )
     fig.show()
 
+    # Usa plotly.express para um snapshot rápido do câmbio e média móvel.
+    usd_plot = usd[["date", "usd_brl", "ma30"]].melt(
+        id_vars="date",
+        value_vars=["usd_brl", "ma30"],
+        var_name="serie",
+        value_name="valor",
+    )
+    fig_px = px.line(
+        usd_plot,
+        x="date",
+        y="valor",
+        color="serie",
+        title="Snapshot USD/BRL vs MM30",
+        labels={"valor": "R$ por USD", "date": "Data", "serie": "Série"},
+    )
+    fig_px.update_layout(height=360)
+    fig_px.show()
+
 # %% [markdown]
 # ## 5. Correlação Câmbio × Ações
 
@@ -149,7 +190,9 @@ if "usd_brl" in macro.columns and len(tickers) > 0:
     )
 
     for i, ticker in enumerate(tickers[:3], start=1):
-        ativo = stocks[stocks["ticker"] == ticker][["date", "return_daily"]].dropna()
+        ativo = stocks[stocks["ticker"] == ticker][
+            ["date", "return_daily"]
+        ].dropna()
         merged = ativo.merge(usd_daily[["date", "usd_return"]], on="date")
 
         if len(merged) > 10:
@@ -160,9 +203,16 @@ if "usd_brl" in macro.columns and len(tickers) > 0:
                 mode="markers",
                 marker=dict(size=4, opacity=0.4, color="#264653"),
                 name=ticker,
-                hovertemplate="USD: %{x:.2f}%<br>Ação: %{y:.2f}%<extra></extra>",
+                hovertemplate=(
+                    "USD: %{x:.2f}%<br>"
+                    "Ação: %{y:.2f}%<extra></extra>"
+                ),
             ), row=1, col=i)
-            fig.update_xaxes(title_text="Retorno USD/BRL (%)", row=1, col=i)
+            fig.update_xaxes(
+                title_text=f"Retorno USD/BRL (%) | corr={corr_val:.2f}",
+                row=1,
+                col=i,
+            )
             fig.update_yaxes(title_text=f"Retorno {ticker} (%)", row=1, col=i)
 
     fig.update_layout(
@@ -194,6 +244,8 @@ if "usd_brl" in macro.columns:
     latest_fx = macro["usd_brl"].dropna().iloc[-1]
     summary["USD/BRL atual"] = f"R$ {latest_fx:.4f}"
 
-df_summary = pd.DataFrame(list(summary.items()), columns=["Indicador", "Valor"])
+df_summary = pd.DataFrame(
+    list(summary.items()), columns=["Indicador", "Valor"]
+)
 print("\n📊 Resumo Macroeconômico:")
 print(df_summary.to_string(index=False))

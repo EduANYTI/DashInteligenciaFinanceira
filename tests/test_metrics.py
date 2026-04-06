@@ -1,3 +1,5 @@
+# pyright: reportMissingImports=false, reportMissingModuleSource=false
+
 """
 tests/test_metrics.py — Testes unitários para o módulo de métricas.
 """
