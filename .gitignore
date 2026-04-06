@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Ambiente virtual
+venv/
+env/
+.env
+.venv/
+
+# Dados (não versionar dados brutos)
+data/raw/
+data/processed/
+data/*.db
+data/*.sqlite
+
+# Logs
+logs/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testes
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Power BI / Tableau (arquivos grandes — usar Git LFS ou não versionar)
+dashboard/*.pbix
+dashboard/*.twbx

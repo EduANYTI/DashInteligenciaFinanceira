@@ -1,0 +1,97 @@
+name: CI — Financial Intelligence Dashboard
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Executa o pipeline todos os dias úteis às 08:00 BRT (11:00 UTC)
+    - cron: "0 11 * * 1-5"
+
+jobs:
+  # ──────────────────────────────────────────────
+  # Job 1: Testes unitários
+  # ──────────────────────────────────────────────
+  test:
+    name: Testes Unitários
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Rodar testes com pytest
+        run: |
+          pytest tests/ -v --tb=short
+
+  # ──────────────────────────────────────────────
+  # Job 2: Pipeline de dados (apenas no schedule)
+  # ──────────────────────────────────────────────
+  pipeline:
+    name: Pipeline de Dados
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'schedule'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Criar arquivo .env
+        run: |
+          cp .env.example .env
+          echo "START_DATE=2020-01-01" >> .env
+
+      - name: Executar pipeline completo
+        run: python main.py
+
+      - name: Upload artefatos (dados processados)
+        uses: actions/upload-artifact@v4
+        with:
+          name: processed-data-${{ github.run_id }}
+          path: data/processed/
+          retention-days: 7
+
+  # ──────────────────────────────────────────────
+  # Job 3: Lint e qualidade de código
+  # ──────────────────────────────────────────────
+  lint:
+    name: Qualidade de Código
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Instalar ferramentas de lint
+        run: |
+          pip install ruff
+
+      - name: Ruff — lint e formato
+        run: ruff check src/ main.py --ignore E501

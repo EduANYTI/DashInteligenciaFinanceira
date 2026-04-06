@@ -1,0 +1,27 @@
+# Data collection
+yfinance==0.2.36
+requests==2.31.0
+
+# Data manipulation
+pandas==2.2.0
+numpy==1.26.4
+
+# Database
+sqlalchemy==2.0.27
+
+# Visualization
+plotly==5.19.0
+seaborn==0.13.2
+matplotlib==3.8.3
+
+# Utilities
+python-dotenv==1.0.1
+loguru==0.7.2
+tqdm==4.66.2
+
+# Notebooks
+jupyter==1.0.0
+ipykernel==6.29.3
+
+# Testing
+pytest==8.0.2
