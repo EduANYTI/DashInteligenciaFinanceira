@@ -11,10 +11,8 @@ Uso:
 import argparse
 import sys
 import time
-from pathlib import Path
 
-# Garante que o diretório raiz está no path
-sys.path.insert(0, str(Path(__file__).parent))
+import pandas as pd
 
 from src.utils.logger import logger
 from src.utils.config import DATA_PROCESSED_DIR, TICKERS_B3
@@ -43,7 +41,13 @@ def run_ingestion() -> dict:
 
 def run_etl(data: dict) -> dict:
     """Executa a etapa de transformação e cálculo de métricas."""
-    from src.etl.transform import clean_stocks, build_price_pivot, build_returns_pivot, normalize_macro, save_processed
+    from src.etl.transform import (
+        build_price_pivot,
+        build_returns_pivot,
+        clean_stocks,
+        normalize_macro,
+        save_processed,
+    )
     from src.etl.metrics import compute_all_metrics, compute_correlation_matrix
 
     logger.info("=" * 60)
@@ -51,16 +55,16 @@ def run_etl(data: dict) -> dict:
     logger.info("=" * 60)
 
     stocks_df = data["stocks_df"]
-    macro_df  = data["macro_df"]
+    macro_df = data["macro_df"]
 
     if stocks_df.empty:
         logger.error("Sem dados de ações para processar.")
         return data
 
     # Limpeza
-    clean_df   = clean_stocks(stocks_df)
-    prices     = build_price_pivot(clean_df)
-    returns    = build_returns_pivot(clean_df)
+    clean_df = clean_stocks(stocks_df)
+    prices = build_price_pivot(clean_df)
+    returns = build_returns_pivot(clean_df)
     norm_macro = normalize_macro(macro_df) if not macro_df.empty else macro_df
 
     # Taxa livre de risco (SELIC diária)
@@ -77,15 +81,14 @@ def run_etl(data: dict) -> dict:
     corr_matrix = compute_correlation_matrix(returns)
 
     # Salva CSVs processados
-    save_processed(clean_df,   "stocks_clean.csv")
+    save_processed(clean_df, "stocks_clean.csv")
     save_processed(metrics_df, "metrics.csv")
     save_processed(corr_matrix.reset_index(), "correlation_matrix.csv")
 
-    import pandas as pd
     return {
         **data,
-        "clean_df":    clean_df,
-        "metrics_df":  metrics_df,
+        "clean_df": clean_df,
+        "metrics_df": metrics_df,
         "corr_matrix": corr_matrix,
     }
 
@@ -99,11 +102,11 @@ def run_load(data: dict) -> None:
     logger.info("=" * 60)
 
     load_all(
-        stocks_df      = data.get("clean_df"),
-        tickers_info_df= data.get("tickers_info_df"),
-        metrics_df     = data.get("metrics_df"),
-        macro_df       = data.get("macro_df"),
-        corr_matrix    = data.get("corr_matrix"),
+        stocks_df=data.get("clean_df"),
+        tickers_info_df=data.get("tickers_info_df"),
+        metrics_df=data.get("metrics_df"),
+        macro_df=data.get("macro_df"),
+        corr_matrix=data.get("corr_matrix"),
     )
 
     verify_db()
@@ -136,8 +139,6 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    import pandas as pd  # garante importação para etl
-
     if args.step == "all":
         run_pipeline()
 
@@ -147,10 +148,31 @@ def main() -> None:
     elif args.step == "etl":
         # Tenta carregar dados já salvos
         stocks_path = DATA_PROCESSED_DIR.parent / "raw" / "stocks_raw.csv"
-        macro_path  = DATA_PROCESSED_DIR / "macro_indicators.csv"
-        stocks_df = pd.read_csv(stocks_path) if stocks_path.exists() else pd.DataFrame()
-        macro_df  = pd.read_csv(macro_path)  if macro_path.exists()  else pd.DataFrame()
-        run_etl({"stocks_df": stocks_df, "macro_df": macro_df, "tickers_info_df": pd.DataFrame()})
+        macro_path = DATA_PROCESSED_DIR / "macro_indicators.csv"
+        stocks_df = (
+            pd.read_csv(stocks_path)
+            if stocks_path.exists()
+            else pd.DataFrame()
+        )
+        macro_df = (
+            pd.read_csv(macro_path)
+            if macro_path.exists()
+            else pd.DataFrame()
+        )
+        run_etl(
+            {
+                "stocks_df": stocks_df,
+                "macro_df": macro_df,
+                "tickers_info_df": pd.DataFrame(),
+            }
+        )
+
+    elif args.step == "load":
+        logger.error(
+            "Step 'load' exige dados processados em memória. "
+            "Use '--step all' para executar o fluxo completo."
+        )
+        sys.exit(1)
 
     elif args.step == "verify":
         from src.etl.load_db import verify_db
@@ -162,5 +184,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    import pandas as pd
     main()
