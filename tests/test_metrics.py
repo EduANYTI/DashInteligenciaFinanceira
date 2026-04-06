@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.etl.metrics import (
+from dashinteligenciafinanceira.src.etl.metrics import (
     annualized_return,
     annualized_volatility,
     beta,

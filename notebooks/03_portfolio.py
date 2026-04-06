@@ -2,24 +2,28 @@
 # # 💼 Análise de Portfólio e Risco
 # **Financial Intelligence Dashboard**
 #
-# Análise de portfólio com alocação equalizada, fronteira eficiente simplificada
+# Análise de portfólio com alocação equalizada,
+# fronteira eficiente simplificada
 # e comparativo de estratégias de risco.
 
 # %%
 import sys
-sys.path.insert(0, "..")
-
 import warnings
-warnings.filterwarnings("ignore")
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import plotly.graph_objects as go
-import plotly.express as px
-from plotly.subplots import make_subplots
 
 from src.utils.config import DATA_PROCESSED_DIR, TRADING_DAYS_YEAR
-from src.etl.metrics import annualized_return, annualized_volatility, sharpe_ratio, max_drawdown
+from dashinteligenciafinanceira.src.etl.metrics import (
+    annualized_return,
+    annualized_volatility,
+    sharpe_ratio,
+    max_drawdown,
+)
+
+sys.path.insert(0, "..")
+warnings.filterwarnings("ignore")
 
 print("Setup concluído ✓")
 
@@ -27,15 +31,22 @@ print("Setup concluído ✓")
 # ## 1. Carregamento
 
 # %%
-stocks = pd.read_csv(DATA_PROCESSED_DIR / "stocks_clean.csv", parse_dates=["date"])
+stocks = pd.read_csv(
+    DATA_PROCESSED_DIR / "stocks_clean.csv", parse_dates=["date"]
+)
 metrics = pd.read_csv(DATA_PROCESSED_DIR / "metrics.csv")
 
 prices = stocks.pivot_table(index="date", columns="ticker", values="close")
-returns = stocks.pivot_table(index="date", columns="ticker", values="return_daily")
+returns = stocks.pivot_table(
+    index="date", columns="ticker", values="return_daily"
+)
 returns_clean = returns.dropna()
 
 print(f"Ativos disponíveis: {list(returns_clean.columns)}")
-print(f"Período: {returns_clean.index.min().date()} → {returns_clean.index.max().date()}")
+print(
+    f"Período: {returns_clean.index.min().date()} "
+    f"→ {returns_clean.index.max().date()}"
+)
 
 # %% [markdown]
 # ## 2. Portfólio Equalizado (Equal Weight)
@@ -52,9 +63,9 @@ port_cumulative = (1 + port_return_daily).cumprod() * 100
 
 # Métricas do portfólio
 port_ann_return = annualized_return((port_cumulative / 100).rename("port"))
-port_ann_vol    = annualized_volatility(port_return_daily)
-port_sharpe     = sharpe_ratio(port_return_daily)
-port_drawdown   = max_drawdown(port_cumulative)
+port_ann_vol = annualized_volatility(port_return_daily)
+port_sharpe = sharpe_ratio(port_return_daily)
+port_drawdown = max_drawdown(port_cumulative)
 
 print("📊 Métricas do Portfólio Equalizado:")
 print(f"  Retorno anualizado : {port_ann_return * 100:.2f}%")
@@ -67,7 +78,6 @@ print(f"  Máximo Drawdown    : {port_drawdown * 100:.2f}%")
 fig = go.Figure()
 
 for ticker in prices.columns:
-    normalized = prices[ticker] / prices[ticker].first_valid_index() if False else None
     p = prices[ticker].dropna()
     if len(p) > 10:
         norm = p / p.iloc[0] * 100
@@ -106,7 +116,7 @@ N_PORTFOLIOS = 3_000
 n_assets = len(returns_clean.columns)
 
 mean_returns = returns_clean.mean()
-cov_matrix   = returns_clean.cov()
+cov_matrix = returns_clean.cov()
 
 np.random.seed(42)
 port_returns_mc, port_vols_mc, port_sharpes_mc, weights_mc = [], [], [], []
@@ -122,20 +132,24 @@ for _ in range(N_PORTFOLIOS):
     weights_mc.append(w)
 
 mc_df = pd.DataFrame({
-    "retorno":   port_returns_mc,
+    "retorno": port_returns_mc,
     "volatilidade": port_vols_mc,
-    "sharpe":    port_sharpes_mc,
+    "sharpe": port_sharpes_mc,
 })
 
 # Portfólio de máximo Sharpe
-best_idx = mc_df["sharpe"].idxmax()
+best_idx = int(mc_df["sharpe"].to_numpy().argmax())
 best = mc_df.iloc[best_idx]
 best_weights = weights_mc[best_idx]
 
 print("🏆 Portfólio de Máximo Sharpe (simulação):")
 for ticker, w in zip(returns_clean.columns, best_weights):
     print(f"  {ticker}: {w * 100:.1f}%")
-print(f"  Sharpe: {best['sharpe']:.3f} | Retorno: {best['retorno']*100:.2f}% | Vol: {best['volatilidade']*100:.2f}%")
+print(
+    f"  Sharpe: {best['sharpe']:.3f} | "
+    f"Retorno: {best['retorno'] * 100:.2f}% | "
+    f"Vol: {best['volatilidade'] * 100:.2f}%"
+)
 
 # %%
 fig = go.Figure()
@@ -193,12 +207,14 @@ fig.show()
 # Variância marginal de cada ativo no portfólio equalizado
 port_variance = np.dot(weights_eq, np.dot(cov_matrix.values, weights_eq))
 marginal_contrib = np.dot(cov_matrix.values, weights_eq)
-risk_contrib = weights_eq * marginal_contrib / port_variance * 100  # % da variância total
+risk_contrib = (
+    weights_eq * marginal_contrib / port_variance * 100
+)  # % da variância total
 
 risk_df = pd.DataFrame({
-    "ticker":           returns_clean.columns,
-    "peso_%":           (weights_eq * 100).round(2),
-    "contrib_risco_%":  risk_contrib.round(2),
+    "ticker": returns_clean.columns,
+    "peso_%": (weights_eq * 100).round(2),
+    "contrib_risco_%": risk_contrib.round(2),
 })
 risk_df = risk_df.sort_values("contrib_risco_%", ascending=False)
 

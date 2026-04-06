@@ -48,7 +48,10 @@ def run_etl(data: dict) -> dict:
         normalize_macro,
         save_processed,
     )
-    from src.etl.metrics import compute_all_metrics, compute_correlation_matrix
+    from dashinteligenciafinanceira.src.etl.metrics import (
+        compute_all_metrics,
+        compute_correlation_matrix,
+    )
 
     logger.info("=" * 60)
     logger.info("ETAPA 2/3 — ETL E MÉTRICAS")

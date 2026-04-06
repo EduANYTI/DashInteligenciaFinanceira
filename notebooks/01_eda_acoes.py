@@ -1,36 +1,33 @@
+# pyright: reportMissingModuleSource=false
+
 # %% [markdown]
 # # 📊 Análise Exploratória de Ações (EDA)
 # **Financial Intelligence Dashboard**
 #
-# Este notebook realiza a análise exploratória completa dos dados de ações coletados,
-# cobrindo: distribuição de retornos, sazonalidade, correlações, drawdown e comparativo
+# Este notebook realiza a análise exploratória completa
+# dos dados de ações coletados, cobrindo distribuição
+# de retornos, sazonalidade, correlações, drawdown e comparativo
 # de performance ajustada ao risco.
 
 # %% [markdown]
 # ## 0. Setup
 
 # %%
-import sys
-sys.path.insert(0, "..")
-
 import warnings
-warnings.filterwarnings("ignore")
 
-import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mtick
+import pandas as pd
 import seaborn as sns
 import plotly.graph_objects as go
 import plotly.express as px
-from plotly.subplots import make_subplots
 
-from src.utils.config import DATA_PROCESSED_DIR, DATA_RAW_DIR
-from src.etl.metrics import (
-    cumulative_return, annualized_return,
-    annualized_volatility, max_drawdown,
-    sharpe_ratio, compute_correlation_matrix,
+from src.utils.config import DATA_PROCESSED_DIR
+from dashinteligenciafinanceira.src.etl.metrics import (
+    compute_correlation_matrix,
 )
+
+warnings.filterwarnings("ignore")
 
 # Estilo
 sns.set_theme(style="whitegrid", palette="muted")
@@ -43,20 +40,25 @@ print("Setup concluído ✓")
 
 # %%
 # Preços limpos
-stocks = pd.read_csv(DATA_PROCESSED_DIR / "stocks_clean.csv", parse_dates=["date"])
+stocks = pd.read_csv(
+    DATA_PROCESSED_DIR / "stocks_clean.csv", parse_dates=["date"]
+)
 metrics = pd.read_csv(DATA_PROCESSED_DIR / "metrics.csv")
 
 print(f"Ações: {stocks['ticker'].nunique()} ativos | {len(stocks):,} linhas")
-print(f"Período: {stocks['date'].min().date()} → {stocks['date'].max().date()}")
-print(f"\nAtivos disponíveis: {sorted(stocks['ticker'].unique()).tolist()}")
+print(
+    f"Período: {stocks['date'].min().date()} "
+    f"→ {stocks['date'].max().date()}"
+)
+print(f"\nAtivos disponíveis: {sorted(stocks['ticker'].unique())}")
 
 # %%
-stocks.head(10)
+print(stocks.head(10).to_string(index=False))
 
 # %%
 # Verifica valores nulos
 print("Valores nulos por coluna:")
-stocks.isnull().sum()
+print(stocks.isnull().sum().to_string())
 
 # %% [markdown]
 # ## 2. Retorno Acumulado (base 100)
@@ -65,10 +67,12 @@ stocks.isnull().sum()
 # Cria tabela pivô de preços de fechamento
 prices = stocks.pivot_table(index="date", columns="ticker", values="close")
 
+
 # Normaliza para base 100 no primeiro pregão disponível
 def normalize_base100(series: pd.Series) -> pd.Series:
     first_valid = series.first_valid_index()
     return series / series[first_valid] * 100
+
 
 prices_norm = prices.apply(normalize_base100)
 
@@ -82,7 +86,11 @@ for ticker in prices_norm.columns:
         name=ticker,
         mode="lines",
         line=dict(width=1.5),
-        hovertemplate=f"<b>{ticker}</b><br>Data: %{{x|%d/%m/%Y}}<br>Índice: %{{y:.1f}}<extra></extra>",
+        hovertemplate=(
+            f"<b>{ticker}</b><br>"
+            "Data: %{x|%d/%m/%Y}<br>"
+            "Índice: %{y:.1f}<extra></extra>"
+        ),
     ))
 
 fig.add_hline(y=100, line_dash="dash", line_color="gray", opacity=0.5)
@@ -101,7 +109,9 @@ fig.show()
 # ## 3. Distribuição dos Retornos Diários
 
 # %%
-returns = stocks.pivot_table(index="date", columns="ticker", values="return_daily")
+returns = stocks.pivot_table(
+    index="date", columns="ticker", values="return_daily"
+)
 
 # Painel de histogramas
 n_tickers = len(returns.columns)
@@ -115,27 +125,53 @@ for i, ticker in enumerate(returns.columns):
     ax = axes[i]
     data = returns[ticker].dropna() * 100
     ax.hist(data, bins=60, color="#4C72B0", edgecolor="none", alpha=0.8)
-    ax.axvline(data.mean(), color="red",    linestyle="--", linewidth=1, label=f"Média: {data.mean():.2f}%")
-    ax.axvline(data.median(), color="orange", linestyle=":", linewidth=1, label=f"Mediana: {data.median():.2f}%")
+    ax.axvline(
+        data.mean(),
+        color="red",
+        linestyle="--",
+        linewidth=1,
+        label=f"Média: {data.mean():.2f}%",
+    )
+    ax.axvline(
+        data.median(),
+        color="orange",
+        linestyle=":",
+        linewidth=1,
+        label=f"Mediana: {data.median():.2f}%",
+    )
     ax.set_title(ticker, fontsize=11, fontweight="bold")
     ax.set_xlabel("Retorno diário (%)")
     ax.set_ylabel("Frequência")
     ax.legend(fontsize=8)
 
 # Esconde subplots vazios
-for j in range(i + 1, len(axes)):
+for j in range(n_tickers, len(axes)):
     axes[j].set_visible(False)
 
-plt.suptitle("Distribuição dos Retornos Diários por Ativo", fontsize=14, fontweight="bold", y=1.01)
+plt.suptitle(
+    "Distribuição dos Retornos Diários por Ativo",
+    fontsize=14,
+    fontweight="bold",
+    y=1.01,
+)
 plt.tight_layout()
 plt.show()
 
 # %%
 # Estatísticas descritivas dos retornos
 desc = (returns * 100).describe().T
-desc.columns = ["n", "média_%", "std_%", "min_%", "p25_%", "mediana_%", "p75_%", "max_%"]
+desc.columns = [
+    "n",
+    "média_%",
+    "std_%",
+    "min_%",
+    "p25_%",
+    "mediana_%",
+    "p75_%",
+    "max_%",
+]
 desc = desc.round(4)
-desc
+print(desc.to_string())
 
 # %% [markdown]
 # ## 4. Volatilidade Rolante (252 dias)
@@ -151,7 +187,10 @@ for ticker in vol_rolling.columns:
         name=ticker,
         mode="lines",
         line=dict(width=1.5),
-        hovertemplate=f"<b>{ticker}</b><br>%{{x|%d/%m/%Y}}: %{{y:.1f}}%<extra></extra>",
+        hovertemplate=(
+            f"<b>{ticker}</b><br>"
+            "%{x|%d/%m/%Y}: %{y:.1f}%<extra></extra>"
+        ),
     ))
 
 fig.update_layout(
@@ -173,9 +212,9 @@ corr = compute_correlation_matrix(returns)
 # Heatmap com Plotly (interativo)
 fig = px.imshow(
     corr,
-    text_auto=".2f",
     color_continuous_scale="RdBu_r",
-    zmin=-1, zmax=1,
+    zmin=-1,
+    zmax=1,
     title="Matriz de Correlação de Pearson — Retornos Diários",
     aspect="auto",
 )
@@ -192,15 +231,18 @@ corr_long = (
 corr_long.columns = ["ativo_a", "ativo_b", "correlacao"]
 corr_long = corr_long.sort_values("correlacao", ascending=False)
 print("Top 10 pares mais correlacionados:")
-corr_long.head(10)
+print(corr_long.head(10).to_string(index=False))
 
 # %% [markdown]
 # ## 6. Drawdown
 
 # %%
+
+
 def calc_drawdown_series(prices: pd.Series) -> pd.Series:
     rolling_max = prices.cummax()
     return (prices - rolling_max) / rolling_max * 100
+
 
 dd = prices.apply(calc_drawdown_series)
 
@@ -214,7 +256,10 @@ for ticker in dd.columns:
         fill="tozeroy",
         fillcolor="rgba(220,50,50,0.05)",
         line=dict(width=1),
-        hovertemplate=f"<b>{ticker}</b><br>%{{x|%d/%m/%Y}}: %{{y:.1f}}%<extra></extra>",
+        hovertemplate=(
+            f"<b>{ticker}</b><br>"
+            "%{x|%d/%m/%Y}: %{y:.1f}%<extra></extra>"
+        ),
     ))
 
 fig.update_layout(
@@ -242,9 +287,9 @@ if not metrics.empty:
         color_continuous_scale="RdYlGn",
         title="Risco × Retorno Anualizado — Tamanho = Sharpe Ratio",
         labels={
-            "volatilidade_anual":  "Volatilidade Anualizada",
+            "volatilidade_anual": "Volatilidade Anualizada",
             "retorno_anualizado": "Retorno Anualizado",
-            "sharpe_ratio":       "Sharpe Ratio",
+            "sharpe_ratio": "Sharpe Ratio",
         },
         hover_data=["max_drawdown", "sharpe_ratio"],
     )
@@ -268,13 +313,24 @@ if not metrics.empty:
 # %%
 if not metrics.empty:
     display_cols = [
-        "ticker", "retorno_acumulado", "retorno_anualizado",
-        "volatilidade_anual", "sharpe_ratio", "sortino_ratio",
-        "max_drawdown", "var_95",
+        "ticker",
+        "retorno_acumulado",
+        "retorno_anualizado",
+        "volatilidade_anual",
+        "sharpe_ratio",
+        "sortino_ratio",
+        "max_drawdown",
+        "var_95",
     ]
     df_display = metrics[display_cols].copy()
 
-    pct_cols = ["retorno_acumulado", "retorno_anualizado", "volatilidade_anual", "max_drawdown", "var_95"]
+    pct_cols = [
+        "retorno_acumulado",
+        "retorno_anualizado",
+        "volatilidade_anual",
+        "max_drawdown",
+        "var_95",
+    ]
     for col in pct_cols:
         df_display[col] = (df_display[col] * 100).round(2).astype(str) + "%"
 
@@ -283,7 +339,7 @@ if not metrics.empty:
     )
     df_display = df_display.sort_values("sharpe_ratio", ascending=False)
     print("Ranking por Sharpe Ratio:")
-    df_display
+    print(df_display.to_string(index=False))
 
 # %% [markdown]
 # ## 9. Sazonalidade — Retorno Médio por Mês
@@ -300,9 +356,24 @@ monthly_avg = (
 )
 monthly_avg["return_pct"] = monthly_avg["return_daily"] * 100
 
-pivot_monthly = monthly_avg.pivot_table(index="ticker", columns="month", values="return_pct")
-pivot_monthly.columns = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
-                          "Jul", "Ago", "Set", "Out", "Nov", "Dez"][:len(pivot_monthly.columns)]
+pivot_monthly = monthly_avg.pivot_table(
+    index="ticker", columns="month", values="return_pct"
+)
+month_labels = [
+    "Jan",
+    "Fev",
+    "Mar",
+    "Abr",
+    "Mai",
+    "Jun",
+    "Jul",
+    "Ago",
+    "Set",
+    "Out",
+    "Nov",
+    "Dez",
+]
+pivot_monthly.columns = month_labels[: len(pivot_monthly.columns)]
 
 fig, ax = plt.subplots(figsize=(16, max(4, len(pivot_monthly) * 0.7)))
 sns.heatmap(
@@ -315,10 +386,17 @@ sns.heatmap(
     ax=ax,
     cbar_kws={"label": "Retorno médio diário (%)"},
 )
-ax.set_title("Sazonalidade — Retorno Médio Diário por Mês (%)", fontsize=13, fontweight="bold")
+ax.set_title(
+    "Sazonalidade — Retorno Médio Diário por Mês (%)",
+    fontsize=13,
+    fontweight="bold",
+)
 ax.set_xlabel("")
 ax.set_ylabel("")
 plt.tight_layout()
 plt.show()
 
-print("\nNota: valores representam o retorno médio DIÁRIO no mês (%, não acumulado no mês).")
+print(
+    "\nNota: valores representam o retorno médio DIÁRIO no mês "
+    "(%, não acumulado no mês)."
+)
